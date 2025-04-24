@@ -77,7 +77,8 @@ function selectDrama(dramaId, dramaName) {
     
     // 设置选中的广播剧ID和名称
     selectedDramaId = dramaId;
-    selectedDramaName = dramaName;  // 保存广播剧名称
+    selectedDramaName = dramaName;
+    isRunning = true;  // 设置运行状态
     
     // 开始爬取
     startCrawl();
@@ -104,7 +105,7 @@ function startCrawl() {
         },
         body: JSON.stringify({
             drama_id: selectedDramaId,
-            drama_name: selectedDramaName  // 添加广播剧名称到请求中
+            drama_name: selectedDramaName
         })
     })
     .then(response => response.json())
@@ -113,19 +114,20 @@ function startCrawl() {
             throw new Error(data.error);
         }
         // 开始轮询进度
-        pollProgress(selectedDramaId);
+        pollProgress();
     })
     .catch(error => {
         document.getElementById('progressArea').innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+        isRunning = false;  // 出错时重置运行状态
     });
 }
 
 function pollProgress() {
-    if (!isRunning || !currentDramaId) {
+    if (!isRunning || !selectedDramaId) {
         return;
     }
     
-    fetch(`/api/get_progress/${currentDramaId}`)
+    fetch(`/api/get_progress/${selectedDramaId}`)
         .then(response => response.json())
         .then(data => {
             if (data.error) {
@@ -223,7 +225,8 @@ function showNoPaidEpisodesError() {
 function stopCrawl() {
     document.getElementById('searchButton').disabled = false;
     isRunning = false;
-    currentDramaId = null;
+    selectedDramaId = null;
+    selectedDramaName = null;
 }
 
 // 添加回车键搜索功能
