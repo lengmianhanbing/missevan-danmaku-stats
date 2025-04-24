@@ -39,10 +39,12 @@ function searchDrama() {
             searchResults.innerHTML = data.results.map(drama => `
                 <div class="list-group-item list-group-item-action" onclick="selectDrama(${drama.drama_id}, '${drama.name}')">
                     <div class="d-flex align-items-center">
-                        <img src="${drama.cover || 'https://static.missevan.com/assets/images/avatar.png'}" 
-                             class="me-3 rounded" 
-                             style="width: 60px; height: 80px; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
-                             onerror="this.src='https://static.missevan.com/assets/images/avatar.png'">
+                        <div class="me-3" style="width: 60px; height: 80px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+                            <img src="${drama.cover || 'https://static.missevan.com/assets/images/avatar.png'}" 
+                                 class="rounded" 
+                                 style="max-width: 100%; max-height: 100%; object-fit: contain;"
+                                 onerror="this.src='https://static.missevan.com/assets/images/avatar.png'">
+                        </div>
                         <div class="flex-grow-1">
                             <h6 class="mb-1">${drama.name}</h6>
                             <small class="text-muted">作者: ${drama.author || '未知'}</small>

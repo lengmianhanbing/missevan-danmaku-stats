@@ -176,7 +176,6 @@ class MissEvanCrawler:
             response.raise_for_status()
             
             print(f"Response status: {response.status_code}")  # 调试日志
-            print(f"Response content: {response.text[:500]}")  # 调试日志
             
             data = response.json()
             if not data.get("success"):
@@ -190,15 +189,11 @@ class MissEvanCrawler:
             formatted_results = []
             for item in results:
                 try:
-                    cover_url = item.get('cover')
-                    if cover_url:
-                        cover_url = self.get_cover_image_base64(cover_url)
-                    
                     formatted_results.append({
                         'drama_id': item.get('id'),
                         'name': item.get('name'),
                         'author': item.get('author', '未知'),
-                        'cover': cover_url
+                        'cover': item.get('cover')  # 直接使用原始图片URL
                     })
                 except Exception as e:
                     print(f"解析广播剧项时出错: {str(e)}")
