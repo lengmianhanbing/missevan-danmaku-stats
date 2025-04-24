@@ -146,19 +146,24 @@ def search_drama():
             return jsonify({'error': '请输入搜索关键词'}), 400
             
         print(f"Searching for drama: {keyword}")  # 添加调试日志
+        print(f"Request headers: {dict(request.headers)}")  # 添加调试日志
         
         crawler = MissEvanCrawler()
         
         # 尝试将关键词转换为数字（ID）
         try:
             drama_id = int(keyword)
+            print(f"Converting keyword to ID: {drama_id}")  # 添加调试日志
+            
             # 如果是数字，直接获取广播剧信息
             drama_info = crawler.get_drama_sounds(drama_id)
             if not drama_info:
+                print(f"No drama found with ID: {drama_id}")  # 添加调试日志
                 return jsonify({'error': '未找到该广播剧'}), 404
                 
             # 获取广播剧名称
             drama_name = drama_info[0].get('name', '未知标题') if drama_info else '未知标题'
+            print(f"Found drama: {drama_name}")  # 添加调试日志
             
             return jsonify({
                 'results': [{
@@ -170,15 +175,19 @@ def search_drama():
             })
             
         except ValueError:
+            print(f"Keyword is not a number, searching by name: {keyword}")  # 添加调试日志
+            
             # 如果不是数字，按名称搜索
             try:
                 results = crawler.search_drama(keyword)
                 print(f"Search results: {results}")  # 添加调试日志
                 
                 if not results:
+                    print(f"No results found for keyword: {keyword}")  # 添加调试日志
                     # 尝试使用备用搜索方法
                     drama = crawler.get_drama_by_name(keyword)
                     if drama:
+                        print(f"Found drama using backup method: {drama}")  # 添加调试日志
                         return jsonify({'results': [drama]})
                     return jsonify({'results': [], 'message': '未找到相关广播剧'})
                 

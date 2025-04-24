@@ -142,23 +142,24 @@ class MissEvanCrawler:
         """搜索广播剧"""
         try:
             # 使用新的搜索API
-            url = f"{self.search_api_url}"
+            url = "https://www.missevan.com/dramaapi/search"
             params = {
                 "keyword": keyword,
                 "page": 1,
-                "limit": 10
+                "limit": 10,
+                "type": "drama"
             }
             
             print(f"Searching with URL: {url} and params: {params}")  # 调试日志
             
             # 添加更多请求头
             headers = {
-                **self.headers,
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
                 "Accept": "application/json, text/plain, */*",
                 "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
                 "Referer": "https://www.missevan.com/",
                 "Origin": "https://www.missevan.com",
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                "Connection": "keep-alive"
             }
             
             response = self.session.get(url, params=params, headers=headers)

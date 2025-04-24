@@ -19,7 +19,13 @@ function searchDrama() {
     const searchUrl = `/api/search?keyword=${encodeURIComponent(keyword)}`;
     console.log('Searching:', searchUrl);
     
-    fetch(searchUrl)
+    fetch(searchUrl, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
         .then(response => {
             console.log('Response status:', response.status);
             console.log('Response headers:', response.headers);
