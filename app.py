@@ -26,8 +26,8 @@ def crawl_drama(drama_id, progress_queue):
         
         if not episodes:
             progress_queue.put({
-                'status': 'error',
-                'message': '未找到付费分集信息'
+                'status': 'no_paid_episodes',
+                'message': '未找到付费分集信息，请选择其他广播剧'
             })
             return
         

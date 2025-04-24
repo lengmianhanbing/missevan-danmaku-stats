@@ -152,6 +152,11 @@ function pollProgress() {
                     case 'error':
                         addLog('error', message.message);
                         break;
+                    case 'no_paid_episodes':
+                        addLog('error', message.message);
+                        showNoPaidEpisodesError();
+                        stopCrawl();
+                        return;
                     case 'complete':
                         addLog('success', message.message);
                         showFinalResult(message.message);
@@ -194,6 +199,19 @@ function showFinalResult(message) {
     resultArea.classList.remove('d-none');
     finalResult.textContent = message;
     resultArea.scrollIntoView({ behavior: 'smooth' });
+}
+
+function showNoPaidEpisodesError() {
+    const resultArea = document.getElementById('resultArea');
+    const finalResult = document.getElementById('finalResult');
+    resultArea.classList.remove('d-none');
+    finalResult.textContent = '无付费集，请重新选择广播剧';
+    finalResult.classList.add('text-danger');
+    resultArea.scrollIntoView({ behavior: 'smooth' });
+    
+    // 重置搜索框
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchResults').classList.add('d-none');
 }
 
 function stopCrawl() {
