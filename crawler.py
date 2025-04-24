@@ -256,8 +256,12 @@ def main():
         print("错误：请输入有效的数字ID")
         return
 
+    # 获取广播剧信息
+    drama_info = crawler.get_sound_info(drama_id)
+    drama_name = drama_info.get("name", "未知广播剧") if drama_info else "未知广播剧"
+
     # 获取所有分集信息
-    print(f"\n正在获取广播剧 {drama_id} 的分集信息...")
+    print(f"\n正在获取广播剧 {drama_name} 的分集信息...")
     episodes = crawler.get_drama_sounds(drama_id)
     
     if not episodes:
@@ -297,6 +301,7 @@ def main():
             continue
     
     print(f"\n=== 统计完成 ===")
+    print(f"广播剧：{drama_name}")
     print(f"总计不重复弹幕用户数: {len(total_danmaku_users)}")
 
 if __name__ == "__main__":

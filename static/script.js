@@ -189,7 +189,22 @@ function showFinalResult(message) {
     const resultArea = document.getElementById('resultArea');
     const finalResult = document.getElementById('finalResult');
     resultArea.classList.remove('d-none');
-    finalResult.textContent = message;
+    
+    // 从消息中提取广播剧名称和用户数
+    const dramaNameMatch = message.match(/广播剧：(.+)/);
+    const userCountMatch = message.match(/总计不重复弹幕用户数: (\d+)/);
+    
+    if (dramaNameMatch && userCountMatch) {
+        const dramaName = dramaNameMatch[1];
+        const userCount = userCountMatch[1];
+        finalResult.innerHTML = `
+            <div class="mb-2"><strong>广播剧：</strong>${dramaName}</div>
+            <div><strong>总计不重复弹幕用户数：</strong>${userCount}</div>
+        `;
+    } else {
+        finalResult.textContent = message;
+    }
+    
     resultArea.scrollIntoView({ behavior: 'smooth' });
 }
 
