@@ -185,12 +185,21 @@ class MissEvanCrawler:
             results = data.get("info", {}).get("Datas", [])
             print(f"Found {len(results)} drama items")  # 调试日志
             
-            # 格式化结果
+            # 格式化结果并过滤掉完全免费的广播剧
             formatted_results = []
             for item in results:
                 try:
+                    drama_id = item.get('id')
+                    if not drama_id:
+                        continue
+                        
+                    # 获取广播剧的分集信息
+                    episodes = self.get_drama_sounds(drama_id)
+                    if not episodes:  # 如果没有付费集，跳过这个广播剧
+                        continue
+                        
                     formatted_results.append({
-                        'drama_id': item.get('id'),
+                        'drama_id': drama_id,
                         'name': item.get('name'),
                         'author': item.get('author', '未知'),
                         'cover': item.get('cover')  # 直接使用原始图片URL
@@ -199,6 +208,7 @@ class MissEvanCrawler:
                     print(f"解析广播剧项时出错: {str(e)}")
                     continue
             
+            print(f"Found {len(formatted_results)} dramas with paid episodes")  # 调试日志
             return formatted_results
             
         except requests.exceptions.RequestException as e:
