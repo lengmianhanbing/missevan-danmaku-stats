@@ -36,15 +36,20 @@ def start_crawl():
         
         # 获取广播剧名称
         try:
+            # 使用正确的API获取广播剧信息
             url = f"{crawler.drama_api_url}/getdrama?drama_id={drama_id}"
             response = crawler.session.get(url)
             response.raise_for_status()
             data = response.json()
+            
             if data.get("success"):
                 drama_info = data.get("info", {})
+                # 从drama_info中获取名称
                 drama_name = drama_info.get("name", "未知广播剧")
+                print(f"获取到广播剧名称: {drama_name}")  # 调试日志
             else:
                 drama_name = "未知广播剧"
+                print(f"获取广播剧信息失败: {data.get('info', '未知错误')}")  # 调试日志
         except Exception as e:
             print(f"获取广播剧信息失败: {e}")
             drama_name = "未知广播剧"
