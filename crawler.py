@@ -4,15 +4,17 @@ import time
 from typing import Dict, List, Optional, Set
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
+import concurrent.futures
+import re
 
 class MissEvanCrawler:
     def __init__(self):
         self.base_url = "https://www.missevan.com"
         self.api_url = "https://www.missevan.com/sound"
         self.drama_api_url = "https://www.missevan.com/dramaapi"
-        self.search_api_url = "https://www.missevan.com/dramaapi/search"
+        self.search_api_url = "https://www.missevan.com/dramaapi/searchdrama"
         self.episode_api_url = "https://www.missevan.com/dramaapi/getepisode"
-        self.danmaku_api_url = "https://www.missevan.com/dramaapi/getdanmaku"
+        self.danmaku_api_url = "https://danmaku.missevan.com/v2"
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             "Accept": "application/json, text/plain, */*",
@@ -28,6 +30,7 @@ class MissEvanCrawler:
         self.danmaku_cache = {}
         self.progress_callbacks = {}
         self.running_tasks = {}
+        self.max_workers = 5  # 并发请求数量
 
     def get_sound_info(self, sound_id: int) -> Optional[Dict]:
         """获取声音详细信息"""
@@ -50,40 +53,25 @@ class MissEvanCrawler:
     def get_danmaku_ids(self, sound_id: int) -> Set[int]:
         """获取一个声音的所有弹幕用户ID"""
         try:
-            # 使用网页版评论API
-            url = f"https://www.missevan.com/sound/getdm?soundid={sound_id}"
+            url = f"{self.danmaku_api_url}/get/{sound_id}"
             response = self.session.get(url)
-            response.raise_for_status()  # 检查HTTP错误
+            response.raise_for_status()
+            data = response.json()
             
-            # 解析XML格式的弹幕数据
-            root = ET.fromstring(response.text)
-            user_ids = set()
+            if not data.get("success"):
+                return set()
             
-            # 遍历所有弹幕
-            for d in root.findall('.//d'):
-                try:
-                    # 弹幕属性格式：p="时间,模式,字体大小,颜色,发送时间,弹幕池,用户ID,弹幕ID"
-                    attrs = d.get('p').split(',')
-                    if len(attrs) >= 7:
-                        user_id = int(attrs[6])
-                        user_ids.add(user_id)
-                except (ValueError, IndexError) as e:
-                    print(f"解析弹幕属性时出错: {str(e)}")
-                    continue
+            # 提取所有弹幕的用户ID
+            danmaku_ids = set()
+            for danmaku in data.get("info", []):
+                user_id = danmaku.get("user_id")
+                if user_id:
+                    danmaku_ids.add(user_id)
             
-            return user_ids
+            return danmaku_ids
             
-        except requests.exceptions.RequestException as e:
-            print(f"获取sound {sound_id}的弹幕时出错: {str(e)}")
-            if hasattr(e, 'response') and e.response is not None:
-                print(f"响应状态码: {e.response.status_code}")
-                print(f"响应内容: {e.response.text}")
-            return set()
-        except ET.ParseError as e:
-            print(f"解析XML数据时出错: {str(e)}")
-            return set()
         except Exception as e:
-            print(f"处理弹幕数据时出错: {str(e)}")
+            print(f"获取弹幕失败: {e}")
             return set()
 
     def get_drama_sounds(self, drama_id: int) -> List[Dict]:
@@ -97,14 +85,14 @@ class MissEvanCrawler:
             if data["success"] and "info" in data:
                 drama_info = data["info"]
                 if isinstance(drama_info, dict):
-                    episodes = drama_info.get("episodes", [])
+                    episodes = drama_info.get("soundlist", [])
                     
                     # 如果episodes是列表，直接使用
                     if isinstance(episodes, list):
                         # 只获取付费的分集（包括小剧场）
                         paid_episodes = [ep for ep in episodes 
                                       if isinstance(ep, dict) 
-                                      and ep.get("need_pay") == 1]
+                                      and ep.get("price", 0) > 0]
                         return paid_episodes
                     # 如果episodes是字典，提取所有值
                     elif isinstance(episodes, dict):
@@ -118,7 +106,7 @@ class MissEvanCrawler:
                         # 只获取付费的分集（包括小剧场）
                         paid_episodes = [ep for ep in episodes_list 
                                       if isinstance(ep, dict) 
-                                      and ep.get("need_pay") == 1]
+                                      and ep.get("price", 0) > 0]
                         return paid_episodes
             return []
         except Exception as e:
@@ -161,64 +149,52 @@ class MissEvanCrawler:
     def search_drama(self, keyword):
         """搜索广播剧"""
         try:
-            # 使用猫耳 FM 的搜索 API
-            url = f"{self.search_api_url}"
-            params = {
-                "s": keyword,
-                "page": 1,
-                "type": "drama",
-                "order": "1"
-            }
-            
-            print(f"Searching with URL: {url} and params: {params}")  # 调试日志
-            
-            response = self.session.get(url, params=params)
-            response.raise_for_status()
-            
-            print(f"Response status: {response.status_code}")  # 调试日志
-            
-            data = response.json()
-            if not data.get("success"):
-                print(f"搜索失败: {data.get('info', '未知错误')}")
-                return []
-            
-            results = data.get("info", {}).get("Datas", [])
-            print(f"Found {len(results)} drama items")  # 调试日志
-            
-            # 格式化结果并过滤掉完全免费的广播剧
-            formatted_results = []
-            for item in results:
-                try:
-                    drama_id = item.get('id')
-                    if not drama_id:
-                        continue
-                        
-                    # 获取广播剧的分集信息
-                    episodes = self.get_drama_sounds(drama_id)
-                    if not episodes:  # 如果没有付费集，跳过这个广播剧
-                        continue
-                        
-                    formatted_results.append({
-                        'drama_id': drama_id,
-                        'name': item.get('name'),
-                        'author': item.get('author', '未知'),
-                        'cover': item.get('cover')  # 直接使用原始图片URL
-                    })
-                except Exception as e:
-                    print(f"解析广播剧项时出错: {str(e)}")
-                    continue
-            
-            print(f"Found {len(formatted_results)} dramas with paid episodes")  # 调试日志
-            return formatted_results
-            
-        except requests.exceptions.RequestException as e:
-            print(f"搜索请求失败: {str(e)}")
-            if hasattr(e, 'response') and e.response is not None:
-                print(f"响应状态码: {e.response.status_code}")
-                print(f"响应内容: {e.response.text}")
-            return []
+            # 尝试将关键词转换为数字（ID）
+            try:
+                drama_id = int(keyword)
+                # 如果是数字，直接获取广播剧信息
+                drama_info = self.get_drama_sounds(drama_id)
+                if not drama_info:
+                    return []
+                    
+                # 获取广播剧名称
+                drama_name = drama_info[0].get('name', '未知标题') if drama_info else '未知标题'
+                
+                return [{
+                    'drama_id': drama_id,
+                    'name': drama_name,
+                    'author': '未知',
+                    'cover': 'https://static.missevan.com/assets/images/avatar.png'
+                }]
+                
+            except ValueError:
+                # 如果不是数字，按名称搜索
+                url = f"{self.search_api_url}?keyword={keyword}&page=1&limit=10"
+                response = self.session.get(url)
+                response.raise_for_status()
+                data = response.json()
+                
+                if not data.get("success"):
+                    return []
+                
+                results = []
+                for item in data.get("info", {}).get("dramalist", []):
+                    # 检查是否有付费集
+                    drama_id = item.get("drama_id")
+                    if drama_id:
+                        sounds = self.get_drama_sounds(drama_id)
+                        if sounds:  # 如果有付费集，则添加到结果中
+                            results.append({
+                                'drama_id': drama_id,
+                                'name': item.get("name", "未知标题"),
+                                'author': item.get("author", "未知"),
+                                'cover': item.get("cover", "https://static.missevan.com/assets/images/avatar.png")
+                            })
+                
+                return results
+                
         except Exception as e:
-            print(f"搜索广播剧时出错: {str(e)}")
+            print(f"搜索广播剧失败: {e}")
             return []
 
     def get_drama_by_name(self, name: str) -> Optional[Dict]:
@@ -239,6 +215,92 @@ class MissEvanCrawler:
         except Exception as e:
             print(f"通过名称获取广播剧时出错: {str(e)}")
             return None
+
+    def process_episode(self, episode):
+        """处理单个分集"""
+        try:
+            sound_id = episode.get("sound_id")
+            title = episode.get("name", "未知标题")
+            
+            if sound_id:
+                # 获取弹幕用户ID
+                danmaku_ids = self.get_danmaku_ids(sound_id)
+                return {
+                    'title': title,
+                    'user_count': len(danmaku_ids),
+                    'user_ids': danmaku_ids
+                }
+        except Exception as e:
+            print(f"处理分集失败: {e}")
+        return None
+
+    def crawl_drama(self, drama_id, progress_queue=None):
+        """爬取指定广播剧的所有付费分集弹幕"""
+        try:
+            # 获取所有分集信息
+            episodes = self.get_drama_sounds(drama_id)
+            if not episodes:
+                if progress_queue:
+                    progress_queue.put({
+                        'status': 'error',
+                        'message': "未找到付费分集信息"
+                    })
+                return set()
+            
+            # 使用线程池并发处理分集
+            total_danmaku_users = set()
+            total_episodes = len(episodes)
+            processed_count = 0
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                # 提交所有任务
+                future_to_episode = {
+                    executor.submit(self.process_episode, episode): episode 
+                    for episode in episodes
+                }
+                
+                # 处理完成的任务
+                for future in concurrent.futures.as_completed(future_to_episode):
+                    episode = future_to_episode[future]
+                    processed_count += 1
+                    
+                    try:
+                        result = future.result()
+                        if result:
+                            total_danmaku_users.update(result['user_ids'])
+                            
+                            # 更新进度
+                            if progress_queue:
+                                progress_queue.put({
+                                    'status': 'progress',
+                                    'current': processed_count,
+                                    'total': total_episodes,
+                                    'message': f"正在处理: {result['title']}"
+                                })
+                                
+                                progress_queue.put({
+                                    'status': 'info',
+                                    'message': f"分集 {result['title']} 弹幕用户数: {result['user_count']}"
+                                })
+                                
+                                progress_queue.put({
+                                    'status': 'info',
+                                    'message': f"当前累计不重复用户数: {len(total_danmaku_users)}"
+                                })
+                    except Exception as e:
+                        print(f"处理分集结果失败: {e}")
+                        continue
+            
+            return total_danmaku_users
+            
+        except Exception as e:
+            print(f"爬取广播剧失败: {e}")
+            if progress_queue:
+                progress_queue.put({
+                    'status': 'error',
+                    'message': f"爬取过程出错: {str(e)}"
+                })
+            return set()
 
 def main():
     crawler = MissEvanCrawler()
