@@ -152,19 +152,10 @@ def search_drama():
         
         print(f"Search results: {results}")  # 添加调试日志
         
-        # 格式化搜索结果
-        formatted_results = []
-        for drama in results:
-            formatted_results.append({
-                'id': drama.get('drama_id'),
-                'name': drama.get('name'),
-                'author': drama.get('author'),
-                'cover': drama.get('cover')
-            })
+        if not results:
+            return jsonify({'results': [], 'message': '未找到相关广播剧'})
         
-        print(f"Formatted results: {formatted_results}")  # 添加调试日志
-        
-        return jsonify({'results': formatted_results})
+        return jsonify({'results': results})
         
     except Exception as e:
         print(f"Search error: {str(e)}")  # 添加调试日志

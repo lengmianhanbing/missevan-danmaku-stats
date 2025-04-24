@@ -142,12 +142,11 @@ class MissEvanCrawler:
         """搜索广播剧"""
         try:
             # 使用新的搜索API
-            url = f"https://www.missevan.com/dramaapi/searchdrama"
+            url = f"{self.search_api_url}"
             params = {
                 "keyword": keyword,
                 "page": 1,
-                "limit": 10,
-                "type": "drama"  # 添加类型参数
+                "limit": 10
             }
             
             print(f"Searching with URL: {url} and params: {params}")  # 调试日志
@@ -160,16 +159,40 @@ class MissEvanCrawler:
             
             data = response.json()
             
-            if data["success"] and "info" in data:
-                results = data["info"].get("list", [])
-                print(f"Found {len(results)} results")  # 调试日志
-                return results
-            return []
-        except Exception as e:
-            print(f"搜索广播剧时出错: {str(e)}")
+            if not data.get("success"):
+                print(f"Search API returned error: {data.get('info', 'Unknown error')}")
+                return []
+                
+            if "info" not in data:
+                print("Search API response missing 'info' field")
+                return []
+                
+            results = data["info"].get("list", [])
+            print(f"Found {len(results)} results")  # 调试日志
+            
+            # 格式化结果
+            formatted_results = []
+            for drama in results:
+                formatted_results.append({
+                    'drama_id': drama.get('drama_id'),
+                    'name': drama.get('name'),
+                    'author': drama.get('author'),
+                    'cover': drama.get('cover')
+                })
+            
+            return formatted_results
+            
+        except requests.exceptions.RequestException as e:
+            print(f"搜索请求失败: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"响应状态码: {e.response.status_code}")
                 print(f"响应内容: {e.response.text}")
+            return []
+        except json.JSONDecodeError as e:
+            print(f"解析响应JSON失败: {str(e)}")
+            return []
+        except Exception as e:
+            print(f"搜索广播剧时出错: {str(e)}")
             return []
 
 def main():

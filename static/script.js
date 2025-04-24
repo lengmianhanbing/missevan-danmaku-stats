@@ -22,6 +22,9 @@ function searchDrama() {
     fetch(searchUrl)
         .then(response => {
             console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             return response.json();
         })
         .then(data => {
@@ -39,7 +42,7 @@ function searchDrama() {
             
             // 显示搜索结果
             searchResults.innerHTML = data.results.map(drama => `
-                <div class="list-group-item list-group-item-action" onclick="selectDrama(${drama.id}, '${drama.name}')">
+                <div class="list-group-item list-group-item-action" onclick="selectDrama(${drama.drama_id}, '${drama.name}')">
                     <div class="d-flex align-items-center">
                         <img src="${drama.cover}" class="me-3" style="width: 50px; height: 50px; object-fit: cover;" onerror="this.src='https://static.missevan.com/assets/images/avatar.png'">
                         <div>
@@ -52,7 +55,7 @@ function searchDrama() {
         })
         .catch(error => {
             console.error('Search error:', error);
-            searchResults.innerHTML = `<div class="list-group-item text-danger">搜索失败: ${error}</div>`;
+            searchResults.innerHTML = `<div class="list-group-item text-danger">搜索失败: ${error.message}</div>`;
         });
 }
 
