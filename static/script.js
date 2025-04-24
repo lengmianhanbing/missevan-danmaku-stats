@@ -80,6 +80,10 @@ function selectDrama(dramaId, dramaName) {
     selectedDramaName = dramaName;
     isRunning = true;  // 设置运行状态
     
+    // 显示进度区域
+    document.getElementById('progressArea').classList.remove('d-none');
+    document.getElementById('resultArea').classList.add('d-none');
+    
     // 开始爬取
     startCrawl();
 }
@@ -91,11 +95,12 @@ function startCrawl() {
     }
     
     // 清空之前的结果
-    document.getElementById('progressArea').innerHTML = '';
-    document.getElementById('resultArea').innerHTML = '';
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('status').textContent = '准备开始...';
     
     // 显示加载状态
-    document.getElementById('progressArea').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">正在获取弹幕数据...</p></div>';
+    document.getElementById('status').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">正在获取弹幕数据...</p></div>';
     
     // 发送请求开始爬取
     fetch('/api/start_crawl', {
@@ -117,7 +122,7 @@ function startCrawl() {
         pollProgress();
     })
     .catch(error => {
-        document.getElementById('progressArea').innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+        document.getElementById('status').innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
         isRunning = false;  // 出错时重置运行状态
     });
 }
@@ -180,7 +185,7 @@ function updateProgress(data) {
 function addLog(type, message) {
     const log = document.getElementById('log');
     const entry = document.createElement('div');
-    entry.className = type;
+    entry.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} mb-2`;
     entry.textContent = message;
     log.appendChild(entry);
     log.scrollTop = log.scrollHeight;
@@ -216,10 +221,6 @@ function showNoPaidEpisodesError() {
     finalResult.textContent = '无付费集，请重新选择广播剧';
     finalResult.classList.add('text-danger');
     resultArea.scrollIntoView({ behavior: 'smooth' });
-    
-    // 重置搜索框
-    document.getElementById('searchInput').value = '';
-    document.getElementById('searchResults').classList.add('d-none');
 }
 
 function stopCrawl() {
