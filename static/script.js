@@ -22,8 +22,12 @@ function searchDrama() {
     fetch(searchUrl)
         .then(response => {
             console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json().then(data => {
+                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                });
             }
             return response.json();
         })

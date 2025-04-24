@@ -151,11 +151,22 @@ class MissEvanCrawler:
             
             print(f"Searching with URL: {url} and params: {params}")  # 调试日志
             
-            response = self.session.get(url, params=params)
+            # 添加更多请求头
+            headers = {
+                **self.headers,
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+                "Referer": "https://www.missevan.com/",
+                "Origin": "https://www.missevan.com",
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            
+            response = self.session.get(url, params=params, headers=headers)
             response.raise_for_status()
             
             print(f"Response status: {response.status_code}")  # 调试日志
-            print(f"Response content: {response.text[:200]}")  # 调试日志
+            print(f"Response headers: {dict(response.headers)}")  # 调试日志
+            print(f"Response content: {response.text}")  # 调试日志
             
             data = response.json()
             

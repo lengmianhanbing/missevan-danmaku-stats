@@ -171,13 +171,21 @@ def search_drama():
             
         except ValueError:
             # 如果不是数字，按名称搜索
-            results = crawler.search_drama(keyword)
-            print(f"Search results: {results}")  # 添加调试日志
-            
-            if not results:
-                return jsonify({'results': [], 'message': '未找到相关广播剧'})
-            
-            return jsonify({'results': results})
+            try:
+                results = crawler.search_drama(keyword)
+                print(f"Search results: {results}")  # 添加调试日志
+                
+                if not results:
+                    # 尝试使用备用搜索方法
+                    drama = crawler.get_drama_by_name(keyword)
+                    if drama:
+                        return jsonify({'results': [drama]})
+                    return jsonify({'results': [], 'message': '未找到相关广播剧'})
+                
+                return jsonify({'results': results})
+            except Exception as e:
+                print(f"Search error: {str(e)}")  # 添加调试日志
+                return jsonify({'error': f'搜索失败: {str(e)}'}), 500
         
     except Exception as e:
         print(f"Search error: {str(e)}")  # 添加调试日志
