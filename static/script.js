@@ -71,8 +71,9 @@ function searchDrama() {
 
 function selectDrama(dramaId, dramaName) {
     // 清空搜索框和结果
-    document.getElementById('dramaId').value = '';
+    document.getElementById('searchInput').value = '';
     document.getElementById('searchResults').innerHTML = '';
+    document.getElementById('searchResults').classList.add('d-none');
     
     // 设置选中的广播剧ID和名称
     selectedDramaId = dramaId;
@@ -89,11 +90,11 @@ function startCrawl() {
     }
     
     // 清空之前的结果
-    document.getElementById('progress').innerHTML = '';
-    document.getElementById('result').innerHTML = '';
+    document.getElementById('progressArea').innerHTML = '';
+    document.getElementById('resultArea').innerHTML = '';
     
     // 显示加载状态
-    document.getElementById('progress').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">正在获取弹幕数据...</p></div>';
+    document.getElementById('progressArea').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">正在获取弹幕数据...</p></div>';
     
     // 发送请求开始爬取
     fetch('/api/start_crawl', {
@@ -115,7 +116,7 @@ function startCrawl() {
         pollProgress(selectedDramaId);
     })
     .catch(error => {
-        document.getElementById('progress').innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+        document.getElementById('progressArea').innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
     });
 }
 
