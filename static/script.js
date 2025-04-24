@@ -69,7 +69,7 @@ function searchDrama() {
 
 function selectDrama(dramaId, dramaName) {
     currentDramaId = dramaId;
-    document.getElementById('searchInput').value = `${dramaName} (ID: ${dramaId})`;
+    document.getElementById('searchInput').value = '';  // 清空搜索框
     document.getElementById('searchResults').classList.add('d-none');
     startCrawl();
 }
