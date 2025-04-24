@@ -195,6 +195,25 @@ class MissEvanCrawler:
             print(f"搜索广播剧时出错: {str(e)}")
             return []
 
+    def get_drama_by_name(self, name: str) -> Optional[Dict]:
+        """通过名称获取广播剧信息"""
+        try:
+            results = self.search_drama(name)
+            if not results:
+                return None
+                
+            # 找到名称完全匹配的结果
+            for drama in results:
+                if drama['name'] == name:
+                    return drama
+                    
+            # 如果没有完全匹配，返回第一个结果
+            return results[0] if results else None
+            
+        except Exception as e:
+            print(f"通过名称获取广播剧时出错: {str(e)}")
+            return None
+
 def main():
     crawler = MissEvanCrawler()
     

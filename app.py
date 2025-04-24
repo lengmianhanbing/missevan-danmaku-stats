@@ -148,14 +148,36 @@ def search_drama():
         print(f"Searching for drama: {keyword}")  # 添加调试日志
         
         crawler = MissEvanCrawler()
-        results = crawler.search_drama(keyword)
         
-        print(f"Search results: {results}")  # 添加调试日志
-        
-        if not results:
-            return jsonify({'results': [], 'message': '未找到相关广播剧'})
-        
-        return jsonify({'results': results})
+        # 尝试将关键词转换为数字（ID）
+        try:
+            drama_id = int(keyword)
+            # 如果是数字，直接获取广播剧信息
+            drama_info = crawler.get_drama_sounds(drama_id)
+            if not drama_info:
+                return jsonify({'error': '未找到该广播剧'}), 404
+                
+            # 获取广播剧名称
+            drama_name = drama_info[0].get('name', '未知标题') if drama_info else '未知标题'
+            
+            return jsonify({
+                'results': [{
+                    'drama_id': drama_id,
+                    'name': drama_name,
+                    'author': '未知',
+                    'cover': 'https://static.missevan.com/assets/images/avatar.png'
+                }]
+            })
+            
+        except ValueError:
+            # 如果不是数字，按名称搜索
+            results = crawler.search_drama(keyword)
+            print(f"Search results: {results}")  # 添加调试日志
+            
+            if not results:
+                return jsonify({'results': [], 'message': '未找到相关广播剧'})
+            
+            return jsonify({'results': results})
         
     except Exception as e:
         print(f"Search error: {str(e)}")  # 添加调试日志

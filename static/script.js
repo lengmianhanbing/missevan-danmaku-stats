@@ -52,6 +52,12 @@ function searchDrama() {
                     </div>
                 </div>
             `).join('');
+            
+            // 如果只有一个结果，自动选择
+            if (data.results.length === 1) {
+                const drama = data.results[0];
+                selectDrama(drama.drama_id, drama.name);
+            }
         })
         .catch(error => {
             console.error('Search error:', error);
