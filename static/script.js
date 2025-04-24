@@ -17,15 +17,15 @@ function searchDrama() {
     
     // 发送搜索请求
     const searchUrl = `/api/search?keyword=${encodeURIComponent(keyword)}`;
-    console.log('Searching:', searchUrl);  // 添加调试日志
+    console.log('Searching:', searchUrl);
     
     fetch(searchUrl)
         .then(response => {
-            console.log('Response status:', response.status);  // 添加调试日志
+            console.log('Response status:', response.status);
             return response.json();
         })
         .then(data => {
-            console.log('Search results:', data);  // 添加调试日志
+            console.log('Search results:', data);
             
             if (data.error) {
                 searchResults.innerHTML = `<div class="list-group-item text-danger">${data.error}</div>`;
@@ -33,7 +33,7 @@ function searchDrama() {
             }
             
             if (!data.results || data.results.length === 0) {
-                searchResults.innerHTML = '<div class="list-group-item">未找到相关广播剧</div>';
+                searchResults.innerHTML = '<div class="list-group-item">未找到相关广播剧，请尝试其他关键词</div>';
                 return;
             }
             
@@ -41,17 +41,17 @@ function searchDrama() {
             searchResults.innerHTML = data.results.map(drama => `
                 <div class="list-group-item list-group-item-action" onclick="selectDrama(${drama.id}, '${drama.name}')">
                     <div class="d-flex align-items-center">
-                        <img src="${drama.cover}" class="me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                        <img src="${drama.cover}" class="me-3" style="width: 50px; height: 50px; object-fit: cover;" onerror="this.src='https://static.missevan.com/assets/images/avatar.png'">
                         <div>
                             <h6 class="mb-1">${drama.name}</h6>
-                            <small class="text-muted">作者: ${drama.author}</small>
+                            <small class="text-muted">作者: ${drama.author || '未知'}</small>
                         </div>
                     </div>
                 </div>
             `).join('');
         })
         .catch(error => {
-            console.error('Search error:', error);  // 添加调试日志
+            console.error('Search error:', error);
             searchResults.innerHTML = `<div class="list-group-item text-danger">搜索失败: ${error}</div>`;
         });
 }

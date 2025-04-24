@@ -141,13 +141,29 @@ class MissEvanCrawler:
     def search_drama(self, keyword: str) -> List[Dict]:
         """搜索广播剧"""
         try:
-            url = f"{self.search_api_url}?keyword={keyword}&page=1&limit=10"
-            response = self.session.get(url)
+            # 使用新的搜索API
+            url = f"https://www.missevan.com/dramaapi/searchdrama"
+            params = {
+                "keyword": keyword,
+                "page": 1,
+                "limit": 10,
+                "type": "drama"  # 添加类型参数
+            }
+            
+            print(f"Searching with URL: {url} and params: {params}")  # 调试日志
+            
+            response = self.session.get(url, params=params)
             response.raise_for_status()
+            
+            print(f"Response status: {response.status_code}")  # 调试日志
+            print(f"Response content: {response.text[:200]}")  # 调试日志
+            
             data = response.json()
             
             if data["success"] and "info" in data:
-                return data["info"].get("list", [])
+                results = data["info"].get("list", [])
+                print(f"Found {len(results)} results")  # 调试日志
+                return results
             return []
         except Exception as e:
             print(f"搜索广播剧时出错: {str(e)}")
