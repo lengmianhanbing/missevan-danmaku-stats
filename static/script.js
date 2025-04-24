@@ -210,4 +210,17 @@ function stopCrawl() {
     document.getElementById('searchButton').disabled = false;
     isRunning = false;
     currentDramaId = null;
-} 
+}
+
+// 添加回车键搜索功能
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    
+    // 监听回车键
+    searchInput.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault(); // 阻止默认的回车行为
+            searchDrama();
+        }
+    });
+}); 
