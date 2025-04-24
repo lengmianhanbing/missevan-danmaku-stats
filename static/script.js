@@ -100,7 +100,12 @@ function startCrawl() {
     document.getElementById('status').textContent = '准备开始...';
     
     // 显示加载状态
-    document.getElementById('status').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">正在获取弹幕数据...</p></div>';
+    const showDetails = document.getElementById('showDetails').checked;
+    if (showDetails) {
+        document.getElementById('status').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">正在获取弹幕数据...</p></div>';
+    } else {
+        document.getElementById('status').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">正在统计中...</p></div>';
+    }
     
     // 发送请求开始爬取
     fetch('/api/start_crawl', {
@@ -179,11 +184,24 @@ function pollProgress() {
 function updateProgress(data) {
     const progress = (data.current / data.total) * 100;
     document.getElementById('progressBar').style.width = `${progress}%`;
-    document.getElementById('status').textContent = `进度：${data.current}/${data.total} - ${data.message}`;
+    
+    const showDetails = document.getElementById('showDetails').checked;
+    if (showDetails) {
+        document.getElementById('status').textContent = `进度：${data.current}/${data.total} - ${data.message}`;
+    } else {
+        document.getElementById('status').textContent = `进度：${data.current}/${data.total}`;
+    }
 }
 
 function addLog(type, message) {
     const log = document.getElementById('log');
+    const showDetails = document.getElementById('showDetails').checked;
+    
+    // 如果是info类型的消息且不显示详细进度，则跳过
+    if (type === 'info' && !showDetails) {
+        return;
+    }
+    
     const entry = document.createElement('div');
     entry.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} mb-2`;
     entry.textContent = message;
