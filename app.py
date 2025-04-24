@@ -9,80 +9,11 @@ import time
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+# 创建全局爬虫实例
+crawler = MissEvanCrawler()
+
 # 用于存储爬取进度的全局变量
 crawl_progress = {}
-
-def crawl_drama(drama_id, progress_queue):
-    """执行爬虫操作并更新进度"""
-    try:
-        crawler = MissEvanCrawler()
-        
-        # 更新状态：开始获取分集信息
-        progress_queue.put({
-            'status': 'info',
-            'message': f'正在获取广播剧 {drama_id} 的分集信息...'
-        })
-        
-        episodes = crawler.get_drama_sounds(drama_id)
-        
-        if not episodes:
-            progress_queue.put({
-                'status': 'no_paid_episodes',
-                'message': '未找到付费分集信息，请选择其他广播剧'
-            })
-            return
-        
-        progress_queue.put({
-            'status': 'info',
-            'message': f'找到 {len(episodes)} 个分集'
-        })
-        
-        total_danmaku_users = set()
-        total_episodes = len(episodes)
-        
-        for idx, episode in enumerate(episodes, 1):
-            try:
-                sound_id = episode.get("sound_id")
-                title = episode.get("name", "未知标题")
-                
-                progress_queue.put({
-                    'status': 'progress',
-                    'current': idx,
-                    'total': total_episodes,
-                    'message': f'正在处理: {title}'
-                })
-                
-                if sound_id:
-                    danmaku_ids = crawler.get_danmaku_ids(sound_id)
-                    total_danmaku_users.update(danmaku_ids)
-                    
-                    progress_queue.put({
-                        'status': 'info',
-                        'message': f'✓ 本集弹幕用户数: {len(danmaku_ids)}'
-                    })
-                    progress_queue.put({
-                        'status': 'info',
-                        'message': f'当前累计不重复用户数: {len(total_danmaku_users)}'
-                    })
-                    
-            except Exception as e:
-                progress_queue.put({
-                    'status': 'error',
-                    'message': f'处理分集时出错: {str(e)}'
-                })
-                continue
-        
-        # 更新最终结果
-        progress_queue.put({
-            'status': 'complete',
-            'message': f'统计完成！总计不重复弹幕用户数: {len(total_danmaku_users)}'
-        })
-        
-    except Exception as e:
-        progress_queue.put({
-            'status': 'error',
-            'message': f'爬取过程出错: {str(e)}'
-        })
 
 @app.route('/')
 def index():
@@ -92,78 +23,111 @@ def index():
 @app.route('/api/start_crawl', methods=['POST'])
 def start_crawl():
     """开始爬取数据"""
-    data = request.get_json()
-    drama_id = data.get('drama_id')
-    
-    if not drama_id:
-        return jsonify({'error': '请提供广播剧ID'})
-    
-    # 获取广播剧名称
     try:
-        url = f"{crawler.drama_api_url}/getdrama?drama_id={drama_id}"
-        response = crawler.session.get(url)
-        response.raise_for_status()
-        data = response.json()
-        if data.get("success"):
-            drama_info = data.get("info", {})
-            drama_name = drama_info.get("name", "未知广播剧")
-        else:
-            drama_name = "未知广播剧"
-    except Exception as e:
-        print(f"获取广播剧信息失败: {e}")
-        drama_name = "未知广播剧"
-    
-    def crawl_task():
+        data = request.get_json()
+        drama_id = int(data.get('drama_id', 0))
+        
+        if drama_id <= 0:
+            return jsonify({'error': '请输入有效的广播剧ID'}), 400
+        
+        # 创建新的进度队列
+        progress_queue = queue.Queue()
+        crawl_progress[drama_id] = progress_queue
+        
+        # 获取广播剧名称
         try:
-            # 获取所有分集信息
-            episodes = crawler.get_drama_sounds(drama_id)
-            if not episodes:
-                crawler.add_progress_message(drama_id, "error", "未找到付费分集信息")
-                return
-            
-            # 获取每个分集的弹幕数量
-            total_danmaku_users = set()  # 用于统计总体的不重复用户数
-            total_episodes = len(episodes)
-            
-            for idx, episode in enumerate(episodes, 1):
-                try:
-                    sound_id = episode.get("sound_id")
-                    title = episode.get("name", "未知标题")
-                    
-                    # 更新进度
-                    progress = (idx / total_episodes) * 100
-                    crawler.update_progress(drama_id, progress, f"正在处理: {title}")
-                    
-                    if sound_id:
-                        # 获取弹幕用户ID
-                        danmaku_ids = crawler.get_danmaku_ids(sound_id)
-                        total_danmaku_users.update(danmaku_ids)  # 添加到总用户集合中
-                        
-                        # 添加进度消息
-                        crawler.add_progress_message(drama_id, "info", f"分集 {title} 弹幕用户数: {len(danmaku_ids)}")
-                        crawler.add_progress_message(drama_id, "info", f"当前累计不重复用户数: {len(total_danmaku_users)}")
-                        
-                        # 根据进度动态调整延时
-                        if idx < total_episodes:
-                            delay = 0.5 if idx % 5 != 0 else 1.0  # 每5个请求增加一次延时
-                            time.sleep(delay)
-                            
-                except Exception as e:
-                    crawler.add_progress_message(drama_id, "error", f"处理分集时出错: {str(e)}")
-                    continue
-            
-            # 添加最终结果
-            crawler.add_progress_message(drama_id, "complete", f"广播剧：{drama_name}\n总计不重复弹幕用户数: {len(total_danmaku_users)}")
-            
+            url = f"{crawler.drama_api_url}/getdrama?drama_id={drama_id}"
+            response = crawler.session.get(url)
+            response.raise_for_status()
+            data = response.json()
+            if data.get("success"):
+                drama_info = data.get("info", {})
+                drama_name = drama_info.get("name", "未知广播剧")
+            else:
+                drama_name = "未知广播剧"
         except Exception as e:
-            crawler.add_progress_message(drama_id, "error", f"爬取过程出错: {str(e)}")
-    
-    # 启动爬虫任务
-    thread = threading.Thread(target=crawl_task)
-    thread.daemon = True
-    thread.start()
-    
-    return jsonify({'message': '开始爬取'})
+            print(f"获取广播剧信息失败: {e}")
+            drama_name = "未知广播剧"
+        
+        def crawl_task():
+            try:
+                # 获取所有分集信息
+                episodes = crawler.get_drama_sounds(drama_id)
+                if not episodes:
+                    progress_queue.put({
+                        'status': 'error',
+                        'message': "未找到付费分集信息"
+                    })
+                    return
+                
+                # 获取每个分集的弹幕数量
+                total_danmaku_users = set()  # 用于统计总体的不重复用户数
+                total_episodes = len(episodes)
+                
+                for idx, episode in enumerate(episodes, 1):
+                    try:
+                        sound_id = episode.get("sound_id")
+                        title = episode.get("name", "未知标题")
+                        
+                        # 更新进度
+                        progress = (idx / total_episodes) * 100
+                        progress_queue.put({
+                            'status': 'progress',
+                            'current': idx,
+                            'total': total_episodes,
+                            'message': f"正在处理: {title}"
+                        })
+                        
+                        if sound_id:
+                            # 获取弹幕用户ID
+                            danmaku_ids = crawler.get_danmaku_ids(sound_id)
+                            total_danmaku_users.update(danmaku_ids)  # 添加到总用户集合中
+                            
+                            # 添加进度消息
+                            progress_queue.put({
+                                'status': 'info',
+                                'message': f"分集 {title} 弹幕用户数: {len(danmaku_ids)}"
+                            })
+                            progress_queue.put({
+                                'status': 'info',
+                                'message': f"当前累计不重复用户数: {len(total_danmaku_users)}"
+                            })
+                            
+                            # 根据进度动态调整延时
+                            if idx < total_episodes:
+                                delay = 0.5 if idx % 5 != 0 else 1.0  # 每5个请求增加一次延时
+                                time.sleep(delay)
+                                
+                    except Exception as e:
+                        progress_queue.put({
+                            'status': 'error',
+                            'message': f"处理分集时出错: {str(e)}"
+                        })
+                        continue
+                
+                # 添加最终结果
+                progress_queue.put({
+                    'status': 'complete',
+                    'message': f"广播剧：{drama_name}\n总计不重复弹幕用户数: {len(total_danmaku_users)}"
+                })
+                
+            except Exception as e:
+                progress_queue.put({
+                    'status': 'error',
+                    'message': f"爬取过程出错: {str(e)}"
+                })
+        
+        # 启动爬虫任务
+        thread = threading.Thread(target=crawl_task)
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({'message': '开始爬取', 'drama_id': drama_id})
+        
+    except ValueError:
+        return jsonify({'error': '请输入有效的数字ID'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/get_progress/<int:drama_id>')
 def get_progress(drama_id):
@@ -198,8 +162,6 @@ def search_drama():
             
         print(f"Searching for drama: {keyword}")  # 添加调试日志
         print(f"Request headers: {dict(request.headers)}")  # 添加调试日志
-        
-        crawler = MissEvanCrawler()
         
         # 尝试将关键词转换为数字（ID）
         try:
