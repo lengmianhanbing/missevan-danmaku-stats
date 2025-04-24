@@ -257,8 +257,19 @@ def main():
         return
 
     # 获取广播剧信息
-    drama_info = crawler.get_sound_info(drama_id)
-    drama_name = drama_info.get("name", "未知广播剧") if drama_info else "未知广播剧"
+    url = f"{crawler.drama_api_url}/getdrama?drama_id={drama_id}"
+    try:
+        response = crawler.session.get(url)
+        response.raise_for_status()
+        data = response.json()
+        if data.get("success"):
+            drama_info = data.get("info", {})
+            drama_name = drama_info.get("name", "未知广播剧")
+        else:
+            drama_name = "未知广播剧"
+    except Exception as e:
+        print(f"获取广播剧信息失败: {e}")
+        drama_name = "未知广播剧"
 
     # 获取所有分集信息
     print(f"\n正在获取广播剧 {drama_name} 的分集信息...")
