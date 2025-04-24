@@ -11,8 +11,10 @@ class MissEvanCrawler:
         self.api_url = "https://www.missevan.com/sound"
         self.drama_api_url = "https://www.missevan.com/dramaapi"
         self.search_api_url = "https://www.missevan.com/dramaapi/search"
+        self.episode_api_url = "https://www.missevan.com/dramaapi/getepisode"
+        self.danmaku_api_url = "https://www.missevan.com/dramaapi/getdanmaku"
         self.headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
             "Connection": "keep-alive",
@@ -21,6 +23,11 @@ class MissEvanCrawler:
         }
         self.session = requests.Session()
         self.session.headers.update(self.headers)
+        self.drama_cache = {}
+        self.episode_cache = {}
+        self.danmaku_cache = {}
+        self.progress_callbacks = {}
+        self.running_tasks = {}
 
     def get_sound_info(self, sound_id: int) -> Optional[Dict]:
         """获取声音详细信息"""
@@ -139,58 +146,36 @@ class MissEvanCrawler:
                 print(f"响应内容: {e.response.text}")
             return None
 
-    def search_drama(self, keyword: str) -> List[Dict]:
+    def get_cover_image_base64(self, image_url):
+        """获取封面图片的base64编码"""
+        try:
+            response = self.session.get(image_url, headers=self.headers)
+            if response.status_code == 200:
+                import base64
+                return f"data:image/jpeg;base64,{base64.b64encode(response.content).decode('utf-8')}"
+            return None
+        except Exception as e:
+            print(f"获取封面图片失败: {e}")
+            return None
+
+    def search_drama(self, keyword):
         """搜索广播剧"""
         try:
-            # 使用猫耳 FM 的搜索 API
-            url = f"{self.search_api_url}"
-            params = {
-                "s": keyword,
-                "page": 1,
-                "type": "drama",
-                "order": "1"
-            }
-            
-            print(f"Searching with URL: {url} and params: {params}")  # 调试日志
-            
-            response = self.session.get(url, params=params)
+            url = f"{self.search_api_url}?keyword={keyword}&page=1&limit=10"
+            response = self.session.get(url, headers=self.headers)
             response.raise_for_status()
-            
-            print(f"Response status: {response.status_code}")  # 调试日志
-            print(f"Response content: {response.text[:500]}")  # 调试日志
-            
             data = response.json()
-            if not data.get("success"):
-                print(f"搜索失败: {data.get('info', '未知错误')}")
-                return []
             
-            results = data.get("info", {}).get("Datas", [])
-            print(f"Found {len(results)} drama items")  # 调试日志
-            
-            # 格式化结果
-            formatted_results = []
-            for item in results:
-                try:
-                    formatted_results.append({
-                        'drama_id': item.get('id'),
-                        'name': item.get('name'),
-                        'author': item.get('author', '未知'),
-                        'cover': item.get('cover')
-                    })
-                except Exception as e:
-                    print(f"解析广播剧项时出错: {str(e)}")
-                    continue
-            
-            return formatted_results
-            
-        except requests.exceptions.RequestException as e:
-            print(f"搜索请求失败: {str(e)}")
-            if hasattr(e, 'response') and e.response is not None:
-                print(f"响应状态码: {e.response.status_code}")
-                print(f"响应内容: {e.response.text}")
+            if data.get("info", {}).get("code") == 0:
+                results = data.get("info", {}).get("dramalist", [])
+                # 获取每个结果的封面图片
+                for result in results:
+                    if "cover" in result:
+                        result["cover"] = self.get_cover_image_base64(result["cover"])
+                return results
             return []
         except Exception as e:
-            print(f"搜索广播剧时出错: {str(e)}")
+            print(f"搜索广播剧失败: {e}")
             return []
 
     def get_drama_by_name(self, name: str) -> Optional[Dict]:

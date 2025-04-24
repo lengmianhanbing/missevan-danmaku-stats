@@ -19,34 +19,19 @@ function searchDrama() {
     const searchUrl = `/api/search?keyword=${encodeURIComponent(keyword)}`;
     console.log('Searching:', searchUrl);
     
-    fetch(searchUrl, {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        }
-    })
+    fetch(searchUrl)
         .then(response => {
             console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-            
             if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
-                });
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
             console.log('Search results:', data);
             
-            if (data.error) {
-                searchResults.innerHTML = `<div class="list-group-item text-danger">${data.error}</div>`;
-                return;
-            }
-            
             if (!data.results || data.results.length === 0) {
-                searchResults.innerHTML = '<div class="list-group-item">未找到相关广播剧，请尝试其他关键词</div>';
+                searchResults.innerHTML = '<div class="list-group-item">未找到相关广播剧</div>';
                 return;
             }
             
@@ -54,7 +39,10 @@ function searchDrama() {
             searchResults.innerHTML = data.results.map(drama => `
                 <div class="list-group-item list-group-item-action" onclick="selectDrama(${drama.drama_id}, '${drama.name}')">
                     <div class="d-flex align-items-center">
-                        <img src="${drama.cover}" class="me-3 rounded" style="width: 60px; height: 80px; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onerror="this.src='https://static.missevan.com/assets/images/avatar.png'">
+                        <img src="${drama.cover || 'https://static.missevan.com/assets/images/avatar.png'}" 
+                             class="me-3 rounded" 
+                             style="width: 60px; height: 80px; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                             onerror="this.src='https://static.missevan.com/assets/images/avatar.png'">
                         <div class="flex-grow-1">
                             <h6 class="mb-1">${drama.name}</h6>
                             <small class="text-muted">作者: ${drama.author || '未知'}</small>
