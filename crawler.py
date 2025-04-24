@@ -12,11 +12,11 @@ class MissEvanCrawler:
         self.drama_api_url = "https://www.missevan.com/dramaapi"
         self.search_api_url = "https://www.missevan.com/dramaapi/search"
         self.headers = {
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
             "Connection": "keep-alive",
-            "Referer": "https://www.missevan.com/",
+            "Referer": "https://www.missevan.com/mdrama",
             "Origin": "https://www.missevan.com"
         }
         self.session = requests.Session()
@@ -145,10 +145,10 @@ class MissEvanCrawler:
             # 使用猫耳 FM 的搜索 API
             url = f"{self.search_api_url}"
             params = {
-                "keyword": keyword,
+                "s": keyword,
                 "page": 1,
-                "limit": 10,
-                "type": "drama"
+                "type": "drama",
+                "order": "1"
             }
             
             print(f"Searching with URL: {url} and params: {params}")  # 调试日志
@@ -164,7 +164,7 @@ class MissEvanCrawler:
                 print(f"搜索失败: {data.get('info', '未知错误')}")
                 return []
             
-            results = data.get("info", {}).get("results", [])
+            results = data.get("info", {}).get("Datas", [])
             print(f"Found {len(results)} drama items")  # 调试日志
             
             # 格式化结果
@@ -174,7 +174,7 @@ class MissEvanCrawler:
                     formatted_results.append({
                         'drama_id': item.get('id'),
                         'name': item.get('name'),
-                        'author': item.get('author'),
+                        'author': item.get('author', '未知'),
                         'cover': item.get('cover')
                     })
                 except Exception as e:
