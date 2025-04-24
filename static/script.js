@@ -1,5 +1,7 @@
 let currentDramaId = null;
 let isRunning = false;
+let selectedDramaId = null;
+let selectedDramaName = null;
 
 function searchDrama() {
     const searchInput = document.getElementById('searchInput');
@@ -68,34 +70,30 @@ function searchDrama() {
 }
 
 function selectDrama(dramaId, dramaName) {
-    currentDramaId = dramaId;
-    document.getElementById('searchInput').value = '';  // 清空搜索框
-    document.getElementById('searchResults').classList.add('d-none');
+    // 清空搜索框和结果
+    document.getElementById('dramaId').value = '';
+    document.getElementById('searchResults').innerHTML = '';
+    
+    // 设置选中的广播剧ID和名称
+    selectedDramaId = dramaId;
+    selectedDramaName = dramaName;  // 保存广播剧名称
+    
+    // 开始爬取
     startCrawl();
 }
 
 function startCrawl() {
-    if (!currentDramaId) {
-        alert('请先选择或输入广播剧ID');
+    if (!selectedDramaId) {
+        alert('请先选择广播剧');
         return;
     }
     
-    if (isRunning) {
-        return;
-    }
+    // 清空之前的结果
+    document.getElementById('progress').innerHTML = '';
+    document.getElementById('result').innerHTML = '';
     
-    const startButton = document.getElementById('searchButton');
-    const progressArea = document.getElementById('progressArea');
-    const resultArea = document.getElementById('resultArea');
-    const log = document.getElementById('log');
-    
-    // 重置界面
-    log.innerHTML = '';
-    document.getElementById('progressBar').style.width = '0%';
-    progressArea.classList.remove('d-none');
-    resultArea.classList.add('d-none');
-    startButton.disabled = true;
-    isRunning = true;
+    // 显示加载状态
+    document.getElementById('progress').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">正在获取弹幕数据...</p></div>';
     
     // 发送请求开始爬取
     fetch('/api/start_crawl', {
@@ -103,21 +101,21 @@ function startCrawl() {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ drama_id: currentDramaId })
+        body: JSON.stringify({
+            drama_id: selectedDramaId,
+            drama_name: selectedDramaName  // 添加广播剧名称到请求中
+        })
     })
     .then(response => response.json())
     .then(data => {
         if (data.error) {
-            addLog('error', data.error);
-            stopCrawl();
-        } else {
-            // 开始轮询进度
-            pollProgress();
+            throw new Error(data.error);
         }
+        // 开始轮询进度
+        pollProgress(selectedDramaId);
     })
     .catch(error => {
-        addLog('error', '请求失败: ' + error);
-        stopCrawl();
+        document.getElementById('progress').innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
     });
 }
 

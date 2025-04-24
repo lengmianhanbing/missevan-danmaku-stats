@@ -26,6 +26,7 @@ def start_crawl():
     try:
         data = request.get_json()
         drama_id = int(data.get('drama_id', 0))
+        drama_name = data.get('drama_name', '')  # 从请求中获取广播剧名称
         
         if drama_id <= 0:
             return jsonify({'error': '请输入有效的广播剧ID'}), 400
@@ -34,25 +35,24 @@ def start_crawl():
         progress_queue = queue.Queue()
         crawl_progress[drama_id] = progress_queue
         
-        # 获取广播剧名称
-        try:
-            # 使用正确的API获取广播剧信息
-            url = f"{crawler.drama_api_url}/getdrama?drama_id={drama_id}"
-            response = crawler.session.get(url)
-            response.raise_for_status()
-            data = response.json()
-            
-            if data.get("success"):
-                drama_info = data.get("info", {})
-                # 从drama_info中获取名称
-                drama_name = drama_info.get("name", "未知广播剧")
-                print(f"获取到广播剧名称: {drama_name}")  # 调试日志
-            else:
+        # 如果没有提供广播剧名称，尝试从API获取
+        if not drama_name:
+            try:
+                url = f"{crawler.drama_api_url}/getdrama?drama_id={drama_id}"
+                response = crawler.session.get(url)
+                response.raise_for_status()
+                data = response.json()
+                
+                if data.get("success"):
+                    drama_info = data.get("info", {})
+                    drama_name = drama_info.get("name", "未知广播剧")
+                    print(f"获取到广播剧名称: {drama_name}")  # 调试日志
+                else:
+                    drama_name = "未知广播剧"
+                    print(f"获取广播剧信息失败: {data.get('info', '未知错误')}")  # 调试日志
+            except Exception as e:
+                print(f"获取广播剧信息失败: {e}")
                 drama_name = "未知广播剧"
-                print(f"获取广播剧信息失败: {data.get('info', '未知错误')}")  # 调试日志
-        except Exception as e:
-            print(f"获取广播剧信息失败: {e}")
-            drama_name = "未知广播剧"
         
         def crawl_task():
             try:
