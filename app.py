@@ -137,6 +137,32 @@ def get_progress(drama_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/search', methods=['GET'])
+def search_drama():
+    """搜索广播剧"""
+    try:
+        keyword = request.args.get('keyword', '').strip()
+        if not keyword:
+            return jsonify({'error': '请输入搜索关键词'}), 400
+            
+        crawler = MissEvanCrawler()
+        results = crawler.search_drama(keyword)
+        
+        # 格式化搜索结果
+        formatted_results = []
+        for drama in results:
+            formatted_results.append({
+                'id': drama.get('drama_id'),
+                'name': drama.get('name'),
+                'author': drama.get('author'),
+                'cover': drama.get('cover')
+            })
+        
+        return jsonify({'results': formatted_results})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(debug=False, host='0.0.0.0', port=port) 

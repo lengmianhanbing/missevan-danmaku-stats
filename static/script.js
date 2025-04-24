@@ -1,21 +1,73 @@
 let currentDramaId = null;
 let isRunning = false;
 
-function startCrawl() {
-    const dramaId = document.getElementById('dramaId').value.trim();
-    const startButton = document.getElementById('startButton');
-    const progressArea = document.getElementById('progressArea');
-    const resultArea = document.getElementById('resultArea');
-    const log = document.getElementById('log');
+function searchDrama() {
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    const keyword = searchInput.value.trim();
     
-    if (!dramaId) {
-        alert('请输入广播剧ID');
+    if (!keyword) {
+        alert('请输入搜索关键词');
+        return;
+    }
+    
+    // 显示加载状态
+    searchResults.innerHTML = '<div class="list-group-item">搜索中...</div>';
+    searchResults.classList.remove('d-none');
+    
+    // 发送搜索请求
+    fetch(`/api/search?keyword=${encodeURIComponent(keyword)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                searchResults.innerHTML = `<div class="list-group-item text-danger">${data.error}</div>`;
+                return;
+            }
+            
+            if (data.results.length === 0) {
+                searchResults.innerHTML = '<div class="list-group-item">未找到相关广播剧</div>';
+                return;
+            }
+            
+            // 显示搜索结果
+            searchResults.innerHTML = data.results.map(drama => `
+                <div class="list-group-item list-group-item-action" onclick="selectDrama(${drama.id}, '${drama.name}')">
+                    <div class="d-flex align-items-center">
+                        <img src="${drama.cover}" class="me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                        <div>
+                            <h6 class="mb-1">${drama.name}</h6>
+                            <small class="text-muted">作者: ${drama.author}</small>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(error => {
+            searchResults.innerHTML = `<div class="list-group-item text-danger">搜索失败: ${error}</div>`;
+        });
+}
+
+function selectDrama(dramaId, dramaName) {
+    currentDramaId = dramaId;
+    document.getElementById('searchInput').value = `${dramaName} (ID: ${dramaId})`;
+    document.getElementById('searchResults').classList.add('d-none');
+    startCrawl();
+}
+
+function startCrawl() {
+    if (!currentDramaId) {
+        alert('请先选择或输入广播剧ID');
         return;
     }
     
     if (isRunning) {
         return;
     }
+    
+    const startButton = document.getElementById('searchButton');
+    const progressArea = document.getElementById('progressArea');
+    const resultArea = document.getElementById('resultArea');
+    const log = document.getElementById('log');
     
     // 重置界面
     log.innerHTML = '';
@@ -24,7 +76,6 @@ function startCrawl() {
     resultArea.classList.add('d-none');
     startButton.disabled = true;
     isRunning = true;
-    currentDramaId = dramaId;
     
     // 发送请求开始爬取
     fetch('/api/start_crawl', {
@@ -32,7 +83,7 @@ function startCrawl() {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ drama_id: dramaId })
+        body: JSON.stringify({ drama_id: currentDramaId })
     })
     .then(response => response.json())
     .then(data => {
@@ -118,7 +169,7 @@ function showFinalResult(message) {
 }
 
 function stopCrawl() {
-    document.getElementById('startButton').disabled = false;
+    document.getElementById('searchButton').disabled = false;
     isRunning = false;
     currentDramaId = null;
 } 

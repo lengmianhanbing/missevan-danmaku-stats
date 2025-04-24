@@ -9,6 +9,7 @@ class MissEvanCrawler:
         self.base_url = "https://www.missevan.com"
         self.api_url = "https://www.missevan.com/sound"
         self.drama_api_url = "https://www.missevan.com/dramaapi"
+        self.search_api_url = "https://www.missevan.com/dramaapi/search"
         self.headers = {
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
             "Accept": "application/json, text/plain, */*",
@@ -136,6 +137,24 @@ class MissEvanCrawler:
                 print(f"响应状态码: {e.response.status_code}")
                 print(f"响应内容: {e.response.text}")
             return None
+
+    def search_drama(self, keyword: str) -> List[Dict]:
+        """搜索广播剧"""
+        try:
+            url = f"{self.search_api_url}?keyword={keyword}"
+            response = self.session.get(url)
+            response.raise_for_status()
+            data = response.json()
+            
+            if data["success"] and "info" in data:
+                return data["info"].get("list", [])
+            return []
+        except Exception as e:
+            print(f"搜索广播剧时出错: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"响应状态码: {e.response.status_code}")
+                print(f"响应内容: {e.response.text}")
+            return []
 
 def main():
     crawler = MissEvanCrawler()

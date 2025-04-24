@@ -17,8 +17,12 @@
                     </div>
                     <div class="card-body">
                         <div class="input-group mb-3">
-                            <input type="text" id="dramaId" class="form-control" placeholder="请输入广播剧ID（例如：21089）">
-                            <button class="btn btn-primary" type="button" id="startButton" onclick="startCrawl()">开始统计</button>
+                            <input type="text" id="searchInput" class="form-control" placeholder="输入广播剧ID或名称搜索">
+                            <button class="btn btn-outline-primary" type="button" id="searchButton" onclick="searchDrama()">搜索</button>
+                        </div>
+
+                        <!-- 搜索结果列表 -->
+                        <div id="searchResults" class="list-group mb-3 d-none">
                         </div>
                         
                         <div id="progressArea" class="d-none">
