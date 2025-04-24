@@ -5,6 +5,7 @@ function startCrawl() {
     const dramaId = document.getElementById('dramaId').value.trim();
     const startButton = document.getElementById('startButton');
     const progressArea = document.getElementById('progressArea');
+    const resultArea = document.getElementById('resultArea');
     const log = document.getElementById('log');
     
     if (!dramaId) {
@@ -20,6 +21,7 @@ function startCrawl() {
     log.innerHTML = '';
     document.getElementById('progressBar').style.width = '0%';
     progressArea.classList.remove('d-none');
+    resultArea.classList.add('d-none');
     startButton.disabled = true;
     isRunning = true;
     currentDramaId = dramaId;
@@ -73,6 +75,7 @@ function pollProgress() {
                         break;
                     case 'complete':
                         addLog('success', message.message);
+                        showFinalResult(message.message);
                         stopCrawl();
                         return;
                     default:
@@ -104,6 +107,14 @@ function addLog(type, message) {
     entry.textContent = message;
     log.appendChild(entry);
     log.scrollTop = log.scrollHeight;
+}
+
+function showFinalResult(message) {
+    const resultArea = document.getElementById('resultArea');
+    const finalResult = document.getElementById('finalResult');
+    resultArea.classList.remove('d-none');
+    finalResult.textContent = message;
+    resultArea.scrollIntoView({ behavior: 'smooth' });
 }
 
 function stopCrawl() {
