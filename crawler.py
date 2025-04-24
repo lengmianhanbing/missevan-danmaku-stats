@@ -10,7 +10,7 @@ class MissEvanCrawler:
         self.base_url = "https://www.missevan.com"
         self.api_url = "https://www.missevan.com/sound"
         self.drama_api_url = "https://www.missevan.com/dramaapi"
-        self.search_api_url = "https://www.missevan.com/dramaapi/searchdrama"
+        self.search_api_url = "https://www.missevan.com/dramaapi/search"
         self.headers = {
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
             "Accept": "application/json, text/plain, */*",
@@ -143,11 +143,17 @@ class MissEvanCrawler:
         """搜索广播剧"""
         try:
             # 使用猫耳 FM 的搜索 API
-            url = f"{self.search_api_url}?keyword={keyword}&page=1&limit=10"
+            url = f"{self.search_api_url}"
+            params = {
+                "keyword": keyword,
+                "page": 1,
+                "limit": 10,
+                "type": "drama"
+            }
             
-            print(f"Searching with URL: {url}")  # 调试日志
+            print(f"Searching with URL: {url} and params: {params}")  # 调试日志
             
-            response = self.session.get(url)
+            response = self.session.get(url, params=params)
             response.raise_for_status()
             
             print(f"Response status: {response.status_code}")  # 调试日志
