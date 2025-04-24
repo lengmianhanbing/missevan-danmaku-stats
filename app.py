@@ -26,7 +26,7 @@ def start_crawl():
     try:
         data = request.get_json()
         drama_id = int(data.get('drama_id', 0))
-        drama_name = data.get('drama_name', '')
+        drama_name = data.get('drama_name', '')  # 从请求中获取广播剧名称
         
         if drama_id <= 0:
             return jsonify({'error': '请输入有效的广播剧ID'}), 400
@@ -56,8 +56,59 @@ def start_crawl():
         
         def crawl_task():
             try:
-                # 使用新的并发爬取方法
-                total_danmaku_users = crawler.crawl_drama(drama_id, progress_queue)
+                # 获取所有分集信息
+                episodes = crawler.get_drama_sounds(drama_id)
+                if not episodes:
+                    progress_queue.put({
+                        'status': 'error',
+                        'message': "未找到付费分集信息"
+                    })
+                    return
+                
+                # 获取每个分集的弹幕数量
+                total_danmaku_users = set()  # 用于统计总体的不重复用户数
+                total_episodes = len(episodes)
+                
+                for idx, episode in enumerate(episodes, 1):
+                    try:
+                        sound_id = episode.get("sound_id")
+                        title = episode.get("name", "未知标题")
+                        
+                        # 更新进度
+                        progress = (idx / total_episodes) * 100
+                        progress_queue.put({
+                            'status': 'progress',
+                            'current': idx,
+                            'total': total_episodes,
+                            'message': f"正在处理: {title}"
+                        })
+                        
+                        if sound_id:
+                            # 获取弹幕用户ID
+                            danmaku_ids = crawler.get_danmaku_ids(sound_id)
+                            total_danmaku_users.update(danmaku_ids)  # 添加到总用户集合中
+                            
+                            # 添加进度消息
+                            progress_queue.put({
+                                'status': 'info',
+                                'message': f"分集 {title} 弹幕用户数: {len(danmaku_ids)}"
+                            })
+                            progress_queue.put({
+                                'status': 'info',
+                                'message': f"当前累计不重复用户数: {len(total_danmaku_users)}"
+                            })
+                            
+                            # 根据进度动态调整延时
+                            if idx < total_episodes:
+                                delay = 0.5 if idx % 5 != 0 else 1.0  # 每5个请求增加一次延时
+                                time.sleep(delay)
+                                
+                    except Exception as e:
+                        progress_queue.put({
+                            'status': 'error',
+                            'message': f"处理分集时出错: {str(e)}"
+                        })
+                        continue
                 
                 # 添加最终结果
                 progress_queue.put({
