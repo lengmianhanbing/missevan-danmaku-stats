@@ -3,6 +3,7 @@ import json
 import time
 from typing import Dict, List, Optional, Set
 import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
 
 class MissEvanCrawler:
     def __init__(self):
@@ -141,12 +142,10 @@ class MissEvanCrawler:
     def search_drama(self, keyword: str) -> List[Dict]:
         """搜索广播剧"""
         try:
-            # 使用猫耳 FM 的搜索 API
-            url = "https://www.missevan.com/dramaapi/searchdrama"
+            # 使用猫耳 FM 的搜索页面
+            url = "https://www.missevan.com/drama/search"
             params = {
-                "keyword": keyword,
-                "page": 1,
-                "limit": 10
+                "keyword": keyword
             }
             
             print(f"Searching with URL: {url} and params: {params}")  # 调试日志
@@ -154,12 +153,11 @@ class MissEvanCrawler:
             # 添加更多请求头
             headers = {
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-                "Accept": "application/json, text/plain, */*",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
                 "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
                 "Referer": "https://www.missevan.com/",
                 "Origin": "https://www.missevan.com",
-                "Connection": "keep-alive",
-                "Cookie": "msec=1"  # 添加必要的 Cookie
+                "Connection": "keep-alive"
             }
             
             response = self.session.get(url, params=params, headers=headers)
@@ -167,30 +165,33 @@ class MissEvanCrawler:
             
             print(f"Response status: {response.status_code}")  # 调试日志
             print(f"Response headers: {dict(response.headers)}")  # 调试日志
-            print(f"Response content: {response.text}")  # 调试日志
+            print(f"Response content: {response.text[:500]}")  # 调试日志
             
-            data = response.json()
+            # 解析 HTML 内容
+            soup = BeautifulSoup(response.text, 'html.parser')
             
-            if not data.get("success"):
-                print(f"Search API returned error: {data.get('info', 'Unknown error')}")
-                return []
-                
-            if "info" not in data:
-                print("Search API response missing 'info' field")
-                return []
-                
-            results = data["info"].get("list", [])
-            print(f"Found {len(results)} results")  # 调试日志
+            # 查找广播剧列表
+            drama_items = soup.select('.drama-item')
+            print(f"Found {len(drama_items)} drama items")  # 调试日志
             
             # 格式化结果
             formatted_results = []
-            for drama in results:
-                formatted_results.append({
-                    'drama_id': drama.get('drama_id'),
-                    'name': drama.get('name'),
-                    'author': drama.get('author'),
-                    'cover': drama.get('cover')
-                })
+            for item in drama_items:
+                try:
+                    drama_id = item.get('data-id')
+                    name = item.select_one('.drama-name').text.strip()
+                    author = item.select_one('.drama-author').text.strip()
+                    cover = item.select_one('img').get('src')
+                    
+                    formatted_results.append({
+                        'drama_id': drama_id,
+                        'name': name,
+                        'author': author,
+                        'cover': cover
+                    })
+                except Exception as e:
+                    print(f"解析广播剧项时出错: {str(e)}")
+                    continue
             
             return formatted_results
             
@@ -199,9 +200,6 @@ class MissEvanCrawler:
             if hasattr(e, 'response') and e.response is not None:
                 print(f"响应状态码: {e.response.status_code}")
                 print(f"响应内容: {e.response.text}")
-            return []
-        except json.JSONDecodeError as e:
-            print(f"解析响应JSON失败: {str(e)}")
             return []
         except Exception as e:
             print(f"搜索广播剧时出错: {str(e)}")
