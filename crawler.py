@@ -9,7 +9,7 @@ class MissEvanCrawler:
         self.base_url = "https://www.missevan.com"
         self.api_url = "https://www.missevan.com/sound"
         self.drama_api_url = "https://www.missevan.com/dramaapi"
-        self.search_api_url = "https://www.missevan.com/dramaapi/search"
+        self.search_api_url = "https://www.missevan.com/dramaapi/searchdrama"
         self.headers = {
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
             "Accept": "application/json, text/plain, */*",
@@ -141,7 +141,7 @@ class MissEvanCrawler:
     def search_drama(self, keyword: str) -> List[Dict]:
         """搜索广播剧"""
         try:
-            url = f"{self.search_api_url}?keyword={keyword}"
+            url = f"{self.search_api_url}?keyword={keyword}&page=1&limit=10"
             response = self.session.get(url)
             response.raise_for_status()
             data = response.json()

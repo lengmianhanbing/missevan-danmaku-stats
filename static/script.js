@@ -16,15 +16,23 @@ function searchDrama() {
     searchResults.classList.remove('d-none');
     
     // 发送搜索请求
-    fetch(`/api/search?keyword=${encodeURIComponent(keyword)}`)
-        .then(response => response.json())
+    const searchUrl = `/api/search?keyword=${encodeURIComponent(keyword)}`;
+    console.log('Searching:', searchUrl);  // 添加调试日志
+    
+    fetch(searchUrl)
+        .then(response => {
+            console.log('Response status:', response.status);  // 添加调试日志
+            return response.json();
+        })
         .then(data => {
+            console.log('Search results:', data);  // 添加调试日志
+            
             if (data.error) {
                 searchResults.innerHTML = `<div class="list-group-item text-danger">${data.error}</div>`;
                 return;
             }
             
-            if (data.results.length === 0) {
+            if (!data.results || data.results.length === 0) {
                 searchResults.innerHTML = '<div class="list-group-item">未找到相关广播剧</div>';
                 return;
             }
@@ -43,6 +51,7 @@ function searchDrama() {
             `).join('');
         })
         .catch(error => {
+            console.error('Search error:', error);  // 添加调试日志
             searchResults.innerHTML = `<div class="list-group-item text-danger">搜索失败: ${error}</div>`;
         });
 }

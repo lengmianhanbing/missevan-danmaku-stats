@@ -145,8 +145,12 @@ def search_drama():
         if not keyword:
             return jsonify({'error': '请输入搜索关键词'}), 400
             
+        print(f"Searching for drama: {keyword}")  # 添加调试日志
+        
         crawler = MissEvanCrawler()
         results = crawler.search_drama(keyword)
+        
+        print(f"Search results: {results}")  # 添加调试日志
         
         # 格式化搜索结果
         formatted_results = []
@@ -158,9 +162,12 @@ def search_drama():
                 'cover': drama.get('cover')
             })
         
+        print(f"Formatted results: {formatted_results}")  # 添加调试日志
+        
         return jsonify({'results': formatted_results})
         
     except Exception as e:
+        print(f"Search error: {str(e)}")  # 添加调试日志
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
