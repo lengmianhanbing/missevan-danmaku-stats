@@ -142,12 +142,11 @@ class MissEvanCrawler:
         """搜索广播剧"""
         try:
             # 使用猫耳 FM 的搜索 API
-            url = "https://www.missevan.com/dramaapi/search"
+            url = "https://www.missevan.com/dramaapi/searchdrama"
             params = {
                 "keyword": keyword,
                 "page": 1,
-                "limit": 10,
-                "type": "drama"
+                "limit": 10
             }
             
             print(f"Searching with URL: {url} and params: {params}")  # 调试日志
