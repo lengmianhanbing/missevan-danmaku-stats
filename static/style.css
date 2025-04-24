@@ -1,0 +1,49 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+.card-header {
+    border-bottom: none;
+}
+
+.progress {
+    height: 0.5rem;
+}
+
+#log {
+    font-family: monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+#log .error {
+    color: #dc3545;
+}
+
+#log .success {
+    color: #198754;
+}
+
+#log .info {
+    color: #0d6efd;
+}
+
+.alert {
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+.input-group {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.form-control:focus {
+    box-shadow: none;
+    border-color: #0d6efd;
+} 
