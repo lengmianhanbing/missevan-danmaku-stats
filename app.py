@@ -184,11 +184,6 @@ def search_drama():
                 
                 if not results:
                     print(f"No results found for keyword: {keyword}")  # 添加调试日志
-                    # 尝试使用备用搜索方法
-                    drama = crawler.get_drama_by_name(keyword)
-                    if drama:
-                        print(f"Found drama using backup method: {drama}")  # 添加调试日志
-                        return jsonify({'results': [drama]})
                     return jsonify({'results': [], 'message': '未找到相关广播剧'})
                 
                 return jsonify({'results': results})

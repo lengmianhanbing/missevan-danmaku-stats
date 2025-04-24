@@ -141,7 +141,7 @@ class MissEvanCrawler:
     def search_drama(self, keyword: str) -> List[Dict]:
         """搜索广播剧"""
         try:
-            # 使用新的搜索API
+            # 使用猫耳 FM 的搜索 API
             url = "https://www.missevan.com/dramaapi/search"
             params = {
                 "keyword": keyword,
@@ -159,7 +159,8 @@ class MissEvanCrawler:
                 "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
                 "Referer": "https://www.missevan.com/",
                 "Origin": "https://www.missevan.com",
-                "Connection": "keep-alive"
+                "Connection": "keep-alive",
+                "Cookie": "msec=1"  # 添加必要的 Cookie
             }
             
             response = self.session.get(url, params=params, headers=headers)
