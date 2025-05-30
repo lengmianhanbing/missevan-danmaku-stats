@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["python39", "gcc"]
+nixPkgs = ["python39", "python39Packages.pip", "gcc"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["python -m pip install --upgrade pip", "pip install -r requirements.txt"]
 
 [start]
 cmd = "gunicorn app:app"
